@@ -1,0 +1,134 @@
+<html>
+
+<head>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="/style/dataTables.material.min.css">
+    <link rel="stylesheet" type="text/css" href="/style/material.min.css">
+    <style>
+        .selected {
+            background-color: #efefef;
+        }
+        
+        .details_tabs {
+            width: 100%;
+            word-wrap: break-word;
+            white-space: normal;
+        }
+        
+        .tab_content {
+            display: none;
+            padding: 10px;
+            border-top: 1px solid #ddd;
+            background-color: #FFFFFF;
+            width: 100%;
+            white-space: pre-wrap;
+        }
+        
+        .tab_label {
+            display: inline-block;
+            margin: 0 0 -1px;
+            padding: 15px 25px;
+            font-weight: 600;
+            text-align: center;
+            color: #bbb;
+            border: 1px solid transparent;
+            background-color: #FFFFFF;
+        }
+        
+        .tab_label:hover {
+            color: #888;
+            cursor: pointer;
+        }
+        
+        .tab_input:checked + label {
+            color: #000;
+            border: 1px solid #ddd;
+            border-top: 2px solid orange;
+            border-bottom: 1px solid #fff;
+        }
+        
+        #tab1:checked ~ #content1,
+        #tab2:checked ~ #content2,
+        #tab3:checked ~ #content3,
+        #tab4:checked ~ #content4 {
+            display: block;
+        }
+        
+        .tab_input {
+            display: none;
+        }
+    </style>
+    <script src="/js/jquery.dataTables.min.js"></script>
+    <script src="/js/dataTables.material.min.js"></script>
+    <script type="text/javascript">
+        $(document).ready(function() {
+            var dt = $('#expt_table').DataTable({
+                "ajax": "/data",
+                "dom": 'rt<"bottom"iflp<"clear">>',
+                columnDefs: [{
+                    targets: [0, 1, 2, 3, 4, 5],
+                    className: 'mdl-data-table__cell--non-numeric'
+                }]
+            });
+
+            var detailRows = [];
+
+            $(document).on('click', '#expt_table tr', function() {
+                var tr = $(this).closest('tr');
+                var row = dt.row(tr);
+                if (tr.hasClass("selected_row")) {
+                    row.child().hide();
+                    tr.removeClass("selected_row");
+                    tr.next().remove();
+                } else {
+                    if (!tr.hasClass("selected")) {
+                        //Remove all the selected rows
+                        $('.selected').each(function(i, obj) {
+                            obj = $(obj);
+                            obj.remove();
+                        });
+
+                        //Remove all the selected rows
+                        $('.selected_row').each(function(i, obj) {
+                            obj = $(obj);
+                            obj.removeClass("selected_row");
+                        });
+                        tr.addClass('selected_row');
+                        $.ajax({
+                                method: "POST",
+                                url: "/details",
+                                data: {
+                                    experiment_folder: row.nodes()[0].firstChild.innerHTML
+                                }
+                            })
+                            .done(function(msg) {
+                                row.child(msg).show();
+                                tr.next().addClass("selected");
+                            });
+                    }
+                }
+
+            });
+
+        });
+    </script>
+    <title>{{ title }}</title>
+</head>
+
+<body>
+    <table id="expt_table" class="mdl-data-table" cellspacing="0" width="100%">
+        <thead>
+            <tr>
+                <th>Expt Folder</th>
+                <th>Experiment Name</th>
+                <th>Experiment Description </th>
+                <th>Start Time</th>
+                <th>Heartbeat</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+    </table>
+
+</body>
+
+</html>
