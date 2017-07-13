@@ -25,9 +25,7 @@ def get_experiment_details(experiment_path):
 def generate_formatted_row(k,v):
     return "<tr> <td style='border-top:0px'> <label style='font-weight:bold;margin-right:200px'>"+str(k)+"</label> </td>  <td style='border-top:0px'> "+str(v)+"</td> </tr>" 
 
-def get_formatted_expt_details(experiment_path):
-    [cout,run,config] = get_experiment_details(experiment_path)
-
+def generate_experiment_table(run,config):
     expt_details_rows =[generate_formatted_row("Experiment Directory",run['experiment']['base_dir']), 
                         generate_formatted_row("Main File",run['experiment']['mainfile']),
                         "<tr height:20px><td style='border:0px;background-color:#FFFFFF'></tr>"]
@@ -38,47 +36,73 @@ def get_formatted_expt_details(experiment_path):
     <table style='margin-left:auto;margin-right:auto'>
     """+" ".join(expt_details_rows) +"""
     </table>
-    """ 
+    """
 
+    return expt_details
+
+def generate_files_table(experiment_path,run):
+    expt_files = ""
+    for fname,fpath in run['experiment']['sources']:
+        print(options.rootdir," > ",fpath,">",experiment_path)
+        fpath_full = os.path.abspath(os.path.join(experiment_path,"..",fpath))
+        expt_files+="<tr> <td>"+fname+"</td> <td><a href='"+fpath_full+"'>"+fpath+"</a></td></tr>"
+
+    expt_files_table = "<table style='margin-left:auto;margin-right:auto'>"+expt_files+"</table>"
+
+    return expt_files_table
+
+
+def generate_output(cout):
     expt_output = cout
-    expt_files = generate_formatted_row("Sources",run['experiment']['sources'])
+
+    return expt_output
+
+def get_formatted_expt_details(experiment_path):
+    [cout,run,config] = get_experiment_details(experiment_path)
+
+    
+    expt_details = generate_experiment_table(run,config)
+    expt_output = generate_output(cout)
+    expt_files = generate_files_table(experiment_path,run)
     expt_system = ""
+
     output = """
-<div class="details_tabs">
-  <input class = "tab_input" id="tab1" type="radio" name="tabs" checked>
-  <label class ="tab_label" for="tab1">Experiment Details</label>
-    
-  <input class = "tab_input" id="tab2" type="radio" name="tabs">
-  <label class ="tab_label" for="tab2">Output</label>
-    
-  <input class = "tab_input" id="tab3" type="radio" name="tabs">
-  <label class ="tab_label" for="tab3">Files</label>
-    
-  <input class = "tab_input" id="tab4" type="radio" name="tabs">
-  <label class ="tab_label" for="tab4">System Details</label>
-    
+    <div class="details_tabs">
+        <input class = "tab_input" id="tab1" type="radio" name="tabs" checked>
+        <label class ="tab_label" for="tab1">Experiment Details</label>
+          
+        <input class = "tab_input" id="tab2" type="radio" name="tabs">
+        <label class ="tab_label" for="tab2">Output</label>
+          
+        <input class = "tab_input" id="tab3" type="radio" name="tabs">
+        <label class ="tab_label" for="tab3">Files</label>
+          
+        <input class = "tab_input" id="tab4" type="radio" name="tabs">
+        <label class ="tab_label" for="tab4">System Details</label>
+          
 
-  <div class="tab_content" id="content1">
-    """+expt_details+"""
-  </div>
-    
-  <div class="tab_content" id="content2" style="overflow:auto;max-height:500px;height:500px">
-    """+expt_output+"""
-  </div>
-    
-  <div class="tab_content" id="content3">
-  """+expt_files+"""
-  </div>
+        <div class="tab_content" id="content1">
+          """+expt_details+"""
+        </div>
+          
+        <div class="tab_content" id="content2" style="overflow:auto;max-height:500px;height:500px">
+          """+expt_output+"""
+        </div>
+          
+        <div class="tab_content" id="content3">
+        """+expt_files+"""
+        </div>
 
 
-  <div class="tab_content" id="content4">
-  """+expt_system+"""
-  </div>
-
-</div>
+        <div class="tab_content" id="content4">
+        """+expt_system+"""
+        </div>
+    </div>
     """
 
     return output
+
+
 def format_datetime(date_str):
   datetime_object = time.strptime(date_str, "%Y-%m-%dT%H:%M:%S.%f")
   return time.strftime("%d/%m/%y %H:%M:%S",datetime_object)
@@ -118,7 +142,6 @@ class DataHandler(tornado.web.RequestHandler):
         experiment_folder = data.replace("%2F","/").split('=')[-1]
         self.write(get_formatted_expt_details(experiment_folder))
 
-
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
         self.render("template.html", title="Viewing Experiments in "+options.rootdir)
@@ -132,10 +155,12 @@ def main():
         (r"/details", DataHandler),
         (r"/js/(.*)",tornado.web.StaticFileHandler, {"path": "./js"},),
         (r"/style/(.*)",tornado.web.StaticFileHandler, {"path": "./style"},),
+        (r"/(.*)",tornado.web.StaticFileHandler, {"path": "/"},),
 
     ])
     http_server = tornado.httpserver.HTTPServer(application)
     http_server.listen(options.port)
+    print("Starting sacredviewer on port",options.port)
     tornado.ioloop.IOLoop.current().start()
 
 
